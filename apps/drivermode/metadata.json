@@ -1,0 +1,12 @@
+{
+  "id": "drivermode",
+  "name": "Driver Mode",
+  "shortName": "Driver",
+  "version": "0.01",
+  "description": "Activa o desactiva el modo conduccion del firmware",
+  "type": "app",
+  "supports": ["BANGLEJS2"],
+  "storage": [
+    { "name": "drivermode.app.js", "url": "app.js" }
+  ]
+}
