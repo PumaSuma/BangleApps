@@ -6,7 +6,7 @@
   "description": "Activa o desactiva el modo conduccion del firmware",
   "type": "app",
   "supports": ["BANGLEJS2"],
-  "icon": "drivermode.img",
+  "icon": "app.png",
     "storage": [
   { "name": "drivermode.app.js", "url": "app.js" },
   { "name": "drivermode.img", "url": "app-icon.js", "evaluate": true }
