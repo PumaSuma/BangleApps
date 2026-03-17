@@ -1,21 +1,42 @@
-E.showMenu({
-  "": { "title": "Driver Mode" },
+function showDriverMenu() {
+  const isAvailable =
+    typeof Bangle.setDriverMode === "function" &&
+    typeof Bangle.isDriverMode === "function";
 
-  "Modo ON": function() {
-    Bangle.setDriverMode(true);
-    E.showAlert("Driver ON").then(() => load());
-  },
+  const currentState = isAvailable && Bangle.isDriverMode() ? "ON" : "OFF";
 
-  "Modo OFF": function() {
-    Bangle.setDriverMode(false);
-    E.showAlert("Driver OFF").then(() => load());
-  },
+  const menu = {
+    "": { title: "Driver Mode" },
 
-  "Estado": function() {
-    E.showAlert(Bangle.isDriverMode() ? "ON" : "OFF").then(() => load());
-  },
+    "Estado actual": {
+      value: currentState
+    },
 
-  "< Back": function() {
-    load();
-  }
-});
+    "Modo ON": function () {
+      if (!isAvailable) {
+        E.showAlert("Firmware no compatible").then(showDriverMenu);
+        return;
+      }
+      Bangle.setDriverMode(true);
+      E.showAlert("Driver ON").then(showDriverMenu);
+    },
+
+    "Modo OFF": function () {
+      if (!isAvailable) {
+        E.showAlert("Firmware no compatible").then(showDriverMenu);
+        return;
+      }
+      Bangle.setDriverMode(false);
+      E.showAlert("Driver OFF").then(showDriverMenu);
+      return;
+    },
+
+    "< Back": function () {
+      load();
+    }
+  };
+
+  E.showMenu(menu);
+}
+
+showDriverMenu();
