@@ -23,7 +23,11 @@ function showDriverMenu() {
 
   const driverState = driverAvailable && Bangle.isDriverMode() ? "ON" : "OFF";
   const streamState = streamAvailable && Bangle.isDriverBLEStreamOn() ? "ON" : "OFF";
-  const btState = isBtConnected() ? "SI" : "NO";
+  //Trigesimocuarto Edit Puma
+  const btState =
+  (typeof Bangle.isDriverBLEConnected === "function")
+    ? (Bangle.isDriverBLEConnected() ? "SI" : "NO")
+    : (isBtConnected() ? "SI" : "NO");
 
   E.showMenu({
     "": { title: "Driver Mode" },
