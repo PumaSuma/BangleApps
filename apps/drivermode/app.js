@@ -1,19 +1,39 @@
+function isBtConnected() {
+  try {
+    const s = NRF.getSecurityStatus();
+    return !!(s && s.connected);
+  } catch (e) {
+    return false;
+  }
+}
+
+function isDriverAvailable() {
+  return typeof Bangle.setDriverMode === "function" &&
+         typeof Bangle.isDriverMode === "function";
+}
+
+function isStreamAvailable() {
+  return typeof Bangle.setDriverBLEStream === "function" &&
+         typeof Bangle.isDriverBLEStreamOn === "function";
+}
+
 function showDriverMenu() {
-  const isAvailable =
-    typeof Bangle.setDriverMode === "function" &&
-    typeof Bangle.isDriverMode === "function";
+  const driverAvailable = isDriverAvailable();
+  const streamAvailable = isStreamAvailable();
 
-  const currentState = isAvailable && Bangle.isDriverMode() ? "ON" : "OFF";
+  const driverState = driverAvailable && Bangle.isDriverMode() ? "ON" : "OFF";
+  const streamState = streamAvailable && Bangle.isDriverBLEStreamOn() ? "ON" : "OFF";
+  const btState = isBtConnected() ? "SI" : "NO";
 
-  const menu = {
+  E.showMenu({
     "": { title: "Driver Mode" },
 
-    "Estado actual": {
-      value: currentState
-    },
+    "Driver actual": { value: driverState },
+    "BLE conectado": { value: btState },
+    "BLE stream": { value: streamState },
 
-    "Modo ON": function () {
-      if (!isAvailable) {
+    "Driver ON": function () {
+      if (!driverAvailable) {
         E.showAlert("Firmware no compatible").then(showDriverMenu);
         return;
       }
@@ -21,22 +41,41 @@ function showDriverMenu() {
       E.showAlert("Driver ON").then(showDriverMenu);
     },
 
-    "Modo OFF": function () {
-      if (!isAvailable) {
+    "Driver OFF": function () {
+      if (!driverAvailable) {
         E.showAlert("Firmware no compatible").then(showDriverMenu);
         return;
       }
       Bangle.setDriverMode(false);
       E.showAlert("Driver OFF").then(showDriverMenu);
-      return;
+    },
+
+    "Stream ON": function () {
+      if (!streamAvailable) {
+        E.showAlert("Firmware no compatible").then(showDriverMenu);
+        return;
+      }
+      Bangle.setDriverBLEStream(true);
+      E.showAlert("Stream ON").then(showDriverMenu);
+    },
+
+    "Stream OFF": function () {
+      if (!streamAvailable) {
+        E.showAlert("Firmware no compatible").then(showDriverMenu);
+        return;
+      }
+      Bangle.setDriverBLEStream(false);
+      E.showAlert("Stream OFF").then(showDriverMenu);
+    },
+
+    "Refrescar": function () {
+      showDriverMenu();
     },
 
     "< Back": function () {
       load();
     }
-  };
-
-  E.showMenu(menu);
+  });
 }
 
 showDriverMenu();
