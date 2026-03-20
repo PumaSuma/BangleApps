@@ -21,8 +21,11 @@ function showDriverMenu() {
   const driverAvailable = isDriverAvailable();
   const streamAvailable = isStreamAvailable();
 
-  const driverState = driverAvailable && Bangle.isDriverMode() ? "ON" : "OFF";
-  const streamState = streamAvailable && Bangle.isDriverBLEStreamOn() ? "ON" : "OFF";
+  const driverOn = driverAvailable && Bangle.isDriverMode();
+  const streamOn = streamAvailable && Bangle.isDriverBLEStreamOn();
+
+  const driverState = driverOn ? "ON" : "OFF";
+  const streamState = (driverOn && streamOn) ? "ON" : "OFF";
   //Trigesimocuarto Edit Puma
   const btState =
   (typeof Bangle.isDriverBLEConnected === "function")
@@ -55,13 +58,17 @@ function showDriverMenu() {
     },
 
     "Stream ON": function () {
-      if (!streamAvailable) {
-        E.showAlert("Firmware no compatible").then(showDriverMenu);
-        return;
-      }
-      Bangle.setDriverBLEStream(true);
-      E.showAlert("Stream ON").then(showDriverMenu);
-    },
+    if (!streamAvailable) {
+    E.showAlert("Firmware no compatible").then(showDriverMenu);
+    return;
+   }
+   if (!driverAvailable || !Bangle.isDriverMode()) {
+    E.showAlert("Activa Driver primero").then(showDriverMenu);
+      return;
+   }
+   const ok = Bangle.setDriverBLEStream(true);
+   E.showAlert(ok ? "Stream ON" : "No se pudo activar").then(showDriverMenu);
+  },
 
     "Stream OFF": function () {
       if (!streamAvailable) {
