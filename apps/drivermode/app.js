@@ -1,5 +1,7 @@
 var DRIVER_HRM_APP_ID = "driverproject";
+
 var DRIVER_HRM_INTERVAL = null;
+
 var DRIVER_LAST_HRM = {
   bpm: 0,
   confidence: 0,
@@ -8,7 +10,7 @@ var DRIVER_LAST_HRM = {
 
 function isBtConnected() {
   try {
-    const s = NRF.getSecurityStatus();
+    var s = NRF.getSecurityStatus();
     return !!(s && s.connected);
   } catch (e) {
     return false;
@@ -30,8 +32,14 @@ function sendDriverHRLine() {
     var now = Date.now();
     var age = DRIVER_LAST_HRM.ts ? (now - DRIVER_LAST_HRM.ts) : 999999;
 
-    // Formato estable para Raspberry:
-    // DHR,bpm,confidence,age_ms,watch_ts_ms
+    /*
+      Formato enviado por Bluetooth hacia la Raspberry:
+
+      DHR,bpm,confidence,age_ms,watch_ts_ms
+
+      Ejemplo:
+      DHR,72,85,230,1781012345678
+    */
     Bluetooth.println(
       "DHR," +
       Math.round(DRIVER_LAST_HRM.bpm || 0) + "," +
@@ -78,12 +86,15 @@ function startDriverOfficialHRM() {
 
     DRIVER_HRM_INTERVAL = setInterval(sendDriverHRLine, 1000);
 
-    Bluetooth.println("DHRSTART");
+    try {
+      Bluetooth.println("DHRSTART");
+    } catch (e2) {}
+
     return true;
   } catch (e) {
     try {
       Bluetooth.println("DHRERR," + e);
-    } catch (e2) {}
+    } catch (e3) {}
     return false;
   }
 }
@@ -106,20 +117,20 @@ function stopDriverOfficialHRM(sendLine) {
         Bluetooth.println("DHRSTOP");
       } catch (e2) {}
     }
-  } catch (e) {}
+  } catch (e3) {}
 }
 
 function showDriverMenu() {
-  const driverAvailable = isDriverAvailable();
-  const streamAvailable = isStreamAvailable();
+  var driverAvailable = isDriverAvailable();
+  var streamAvailable = isStreamAvailable();
 
-  const driverOn = driverAvailable && Bangle.isDriverMode();
-  const streamOn = streamAvailable && Bangle.isDriverBLEStreamOn();
+  var driverOn = driverAvailable && Bangle.isDriverMode();
+  var streamOn = streamAvailable && Bangle.isDriverBLEStreamOn();
 
-  const driverState = driverOn ? "ON" : "OFF";
-  const streamState = (driverOn && streamOn) ? "ON" : "OFF";
+  var driverState = driverOn ? "ON" : "OFF";
+  var streamState = (driverOn && streamOn) ? "ON" : "OFF";
 
-  const btState =
+  var btState =
     (typeof Bangle.isDriverBLEConnected === "function")
       ? (Bangle.isDriverBLEConnected() ? "SI" : "NO")
       : (isBtConnected() ? "SI" : "NO");
@@ -136,6 +147,7 @@ function showDriverMenu() {
         E.showAlert("Firmware no compatible").then(showDriverMenu);
         return;
       }
+
       Bangle.setDriverMode(true);
       E.showAlert("Driver ON").then(showDriverMenu);
     },
@@ -169,7 +181,7 @@ function showDriverMenu() {
         return;
       }
 
-      const ok = Bangle.setDriverBLEStream(true);
+      var ok = Bangle.setDriverBLEStream(true);
 
       if (ok) {
         startDriverOfficialHRM();
@@ -185,7 +197,10 @@ function showDriverMenu() {
       }
 
       stopDriverOfficialHRM(true);
-      Bangle.setDriverBLEStream(false);
+
+      try {
+        Bangle.setDriverBLEStream(false);
+      } catch (e) {}
 
       E.showAlert("Stream OFF").then(showDriverMenu);
     },
@@ -195,6 +210,7 @@ function showDriverMenu() {
     },
 
     "< Back": function () {
+      stopDriverOfficialHRM(false);
       load();
     }
   });
