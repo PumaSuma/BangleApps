@@ -1,12 +1,17 @@
+/*
+  Driver Mode app
+
+  Versión sin HR oficial de Bangle.
+  Motivo: en pruebas reales el HR oficial de Bangle sobreestimó el pulso
+  respecto a referencia manual y al HR filtrado propio del proyecto.
+
+  Esta app SOLO:
+  - activa/desactiva Driver Mode
+  - activa/desactiva el stream BLE del firmware
+  - asegura que el HRM oficial "driverproject" queda apagado
+*/
+
 var DRIVER_HRM_APP_ID = "driverproject";
-
-var DRIVER_HRM_INTERVAL = null;
-
-var DRIVER_LAST_HRM = {
-  bpm: 0,
-  confidence: 0,
-  ts: 0
-};
 
 function isBtConnected() {
   try {
@@ -27,97 +32,19 @@ function isStreamAvailable() {
          typeof Bangle.isDriverBLEStreamOn === "function";
 }
 
-function sendDriverHRLine() {
+function stopDriverOfficialHRM() {
+  /*
+    Limpieza defensiva:
+    por si una versión anterior dejó el HRM oficial encendido.
+    No usamos HR oficial de Bangle en el modelo final.
+  */
   try {
-    var now = Date.now();
-    var age = DRIVER_LAST_HRM.ts ? (now - DRIVER_LAST_HRM.ts) : 999999;
-
-    /*
-      Formato enviado por Bluetooth hacia la Raspberry:
-
-      DHR,bpm,confidence,age_ms,watch_ts_ms
-
-      Ejemplo:
-      DHR,72,85,230,1781012345678
-    */
-    Bluetooth.println(
-      "DHR," +
-      Math.round(DRIVER_LAST_HRM.bpm || 0) + "," +
-      Math.round(DRIVER_LAST_HRM.confidence || 0) + "," +
-      Math.round(age || 0) + "," +
-      Math.round(DRIVER_LAST_HRM.ts || 0)
-    );
-  } catch (e) {
-    try {
-      Bluetooth.println("DHRERR," + e);
-    } catch (e2) {}
-  }
-}
-
-function onDriverHRM(hrm) {
-  try {
-    DRIVER_LAST_HRM = {
-      bpm: hrm.bpm || 0,
-      confidence: hrm.confidence || 0,
-      ts: Date.now()
-    };
+    Bangle.setHRMPower(0, DRIVER_HRM_APP_ID);
   } catch (e) {}
-}
 
-function startDriverOfficialHRM() {
   try {
-    stopDriverOfficialHRM(false);
-
-    DRIVER_LAST_HRM = {
-      bpm: 0,
-      confidence: 0,
-      ts: 0
-    };
-
-    Bangle.on("HRM", onDriverHRM);
-
-    try {
-      Bangle.setOptions({
-        hrmSportMode: true
-      });
-    } catch (e) {}
-
-    Bangle.setHRMPower(1, DRIVER_HRM_APP_ID);
-
-    DRIVER_HRM_INTERVAL = setInterval(sendDriverHRLine, 1000);
-
-    try {
-      Bluetooth.println("DHRSTART");
-    } catch (e2) {}
-
-    return true;
-  } catch (e) {
-    try {
-      Bluetooth.println("DHRERR," + e);
-    } catch (e3) {}
-    return false;
-  }
-}
-
-function stopDriverOfficialHRM(sendLine) {
-  try {
-    if (DRIVER_HRM_INTERVAL) {
-      clearInterval(DRIVER_HRM_INTERVAL);
-      DRIVER_HRM_INTERVAL = null;
-    }
-
-    Bangle.removeListener("HRM", onDriverHRM);
-
-    try {
-      Bangle.setHRMPower(0, DRIVER_HRM_APP_ID);
-    } catch (e) {}
-
-    if (sendLine) {
-      try {
-        Bluetooth.println("DHRSTOP");
-      } catch (e2) {}
-    }
-  } catch (e3) {}
+    Bluetooth.println("DHRDISABLED");
+  } catch (e2) {}
 }
 
 function showDriverMenu() {
@@ -148,6 +75,7 @@ function showDriverMenu() {
         return;
       }
 
+      stopDriverOfficialHRM();
       Bangle.setDriverMode(true);
       E.showAlert("Driver ON").then(showDriverMenu);
     },
@@ -158,7 +86,7 @@ function showDriverMenu() {
         return;
       }
 
-      stopDriverOfficialHRM(true);
+      stopDriverOfficialHRM();
 
       if (streamAvailable) {
         try {
@@ -181,13 +109,16 @@ function showDriverMenu() {
         return;
       }
 
+      /*
+        Importante:
+        NO activamos Bangle.setHRMPower().
+        El HR usado por el proyecto será el calculado por nuestro pipeline propio.
+      */
+      stopDriverOfficialHRM();
+
       var ok = Bangle.setDriverBLEStream(true);
 
-      if (ok) {
-        startDriverOfficialHRM();
-      }
-
-      E.showAlert(ok ? "Stream ON + HR" : "No se pudo activar").then(showDriverMenu);
+      E.showAlert(ok ? "Stream ON" : "No se pudo activar").then(showDriverMenu);
     },
 
     "Stream OFF": function () {
@@ -196,7 +127,7 @@ function showDriverMenu() {
         return;
       }
 
-      stopDriverOfficialHRM(true);
+      stopDriverOfficialHRM();
 
       try {
         Bangle.setDriverBLEStream(false);
@@ -210,10 +141,11 @@ function showDriverMenu() {
     },
 
     "< Back": function () {
-      stopDriverOfficialHRM(false);
+      stopDriverOfficialHRM();
       load();
     }
   });
 }
 
+stopDriverOfficialHRM();
 showDriverMenu();

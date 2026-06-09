@@ -1,3 +1,5 @@
 0.01: Initial Driver Mode app for enabling driver mode and BLE streaming.
 
 0.02: Add official Bangle HRM output over Bluetooth when Driver Stream is enabled.
+
+0.03: Disable official Bangle HRM output and keep only the project filtered HR pipeline.
